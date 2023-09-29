@@ -119,7 +119,7 @@ $@"<?xml version=""1.0"" encoding=""utf-8""?>
         public class Language
         {
             [Required]
-            [MaxLength(5)]
+            [MaxLength(9)]
             public string sISOCode { get; set; }
             public string sName { get; set; }
         }
@@ -129,13 +129,12 @@ $@"<?xml version=""1.0"" encoding=""utf-8""?>
     public class NumberToWordsRequest
     {
         [Required]
-        [MaxLength(Int32.MaxValue)]
-        [MinLength(Int32.MinValue)]
         public int ubiNum { get; set; }
     }
 
     public class NumberToWordsResponse
     {
+        [Required]
         public string? NumberToWordsResult { get; set; }
     }
 }
