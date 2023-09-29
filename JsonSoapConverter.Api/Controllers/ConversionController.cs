@@ -1,7 +1,9 @@
 ﻿
 using System.ComponentModel.DataAnnotations;
+using System.Net;
 using System.Text;
 using System.Xml;
+using System.Xml.Linq;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JsonSoapConverter.Api
@@ -11,18 +13,15 @@ namespace JsonSoapConverter.Api
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(NumberToWordsResponse))]
     public class NumberConversionController : ControllerBase
     {
-        /// <summary>
-        ///  takes json and maps it into request of existing soap service
-        /// </summary>
-        /// <param name="request"></param>
-        /// <returns></returns>
+
+        private static HttpClient httpClient = new HttpClient( );
+
         [HttpPost]
         [Route("NumberToWords")]
         public async Task<IActionResult> NumberToWords([FromBody] NumberToWordsRequest request)
         {
-            // to get this result we need a function that takes an example soap request and parameterizes the variables (and set the default vale to the original value in the soap example request)
-            string soapRequestBody = 
-$@"<?xml version=""1.0"" encoding=""utf-8""?>
+            string soapRequestBody =
+    $@"<?xml version=""1.0"" encoding=""utf-8""?>
 <soap:Envelope xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">
     <soap:Body>
         <NumberToWords xmlns=""http://www.dataaccess.com/webservicesserver/"">
@@ -31,7 +30,8 @@ $@"<?xml version=""1.0"" encoding=""utf-8""?>
     </soap:Body>
 </soap:Envelope>";
 
-            using HttpClient httpClient = new HttpClient();
+            httpClient.DefaultRequestVersion = HttpVersion.Version20;
+
             using StringContent content = new StringContent(soapRequestBody, Encoding.UTF8, "text/xml");
             using HttpResponseMessage response = await httpClient.PostAsync("https://www.dataaccess.com/webservicesserver/NumberConversion.wso", content);
             string soapResponse = await response.Content.ReadAsStringAsync();
@@ -41,11 +41,22 @@ $@"<?xml version=""1.0"" encoding=""utf-8""?>
             int start = soapResponse.IndexOf(startTag);
             int end = soapResponse.IndexOf(endTag);
 
-            if (start != -1 && end != -1)
+            //if (start != -1 && end != -1)
+            //{
+            //    start += startTag.Length;
+            //    string result = soapResponse[start..end].Trim();
+            //    return Ok(new NumberToWordsResponse { NumberToWordsResult = result });
+            //}
+            //else
+            //{
+            //    return BadRequest("Invalid SOAP Response");
+            //}
+            XNamespace ns = "http://www.dataaccess.com/webservicesserver/";
+            XDocument doc = XDocument.Parse(soapResponse);
+            var result = doc.Descendants(ns + "NumberToWordsResult").FirstOrDefault();
+            if (result != null)
             {
-                start += startTag.Length;
-                string result = soapResponse[start..end].Trim();
-                return Ok(new NumberToWordsResponse { NumberToWordsResult = result });
+                return Ok(new NumberToWordsResponse { NumberToWordsResult = result.Value });
             }
             else
             {
